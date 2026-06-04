@@ -76,6 +76,20 @@ class AuthViewModel(
         }
     }
 
+    fun loginWithGoogle(email: String, name: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _userState.value = UserState.Loading
+            userRepository.loginOrRegisterWithGoogle(email, name)
+                .onSuccess { user ->
+                    _userState.value = UserState.Authenticated(user)
+                    onSuccess()
+                }
+                .onFailure { error ->
+                    _userState.value = UserState.Error(error.message ?: "Đăng nhập Google thất bại")
+                }
+        }
+    }
+
     fun register(
         email: String,
         password: String,

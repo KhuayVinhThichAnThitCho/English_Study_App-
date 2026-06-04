@@ -4,11 +4,6 @@ import com.group16.study_english_app.data.local.entity.WordEntity
 
 object CSVHelper {
 
-    /**
-     * Parses a CSV string into a list of WordEntity objects for a specific deck.
-     * Expected columns (header is optional, we check if first line is a header):
-     * Word, Pronunciation, Meaning, Description, Example, Collocation, Related Words, Note
-     */
     fun parseCSV(content: String, deckId: Long): List<WordEntity> {
         val result = mutableListOf<WordEntity>()
         val lines = content.lines()
