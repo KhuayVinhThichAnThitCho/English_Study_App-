@@ -79,6 +79,34 @@ class UserRepository(
         sessionDataStore.clearSession()
     }
 
+    suspend fun loginOrRegisterWithGoogle(email: String, name: String): Result<UserEntity> {
+        val existingUser = userDao.getUserByEmail(email)
+        val user = if (existingUser != null) {
+            existingUser
+        } else {
+            val newUser = UserEntity(
+                email = email,
+                passwordHash = "", // Mật khẩu trống cho Google SSO
+                name = name,
+                targetGoal = "Giao tiếp",
+                level = "A1",
+                lastActiveDate = getTodayString()
+            )
+            val id = userDao.insertUser(newUser)
+            vocabularyRepository.prepopulateSampleData(id)
+            newUser.copy(id = id)
+        }
+        
+        val mockToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.GOOGLE." + java.util.UUID.randomUUID().toString()
+        val updatedUser = user.copy(mockToken = mockToken)
+        userDao.updateUser(updatedUser)
+        
+        sessionDataStore.saveSession(updatedUser.id, mockToken)
+        updateStreak(updatedUser.id)
+        
+        return Result.success(updatedUser)
+    }
+
     suspend fun updateUserProfile(userId: Long, name: String, targetGoal: String, level: String, dailyWordLimit: Int) {
         val user = userDao.getUserById(userId) ?: return
         val updatedUser = user.copy(

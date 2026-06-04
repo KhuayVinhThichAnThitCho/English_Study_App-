@@ -7,6 +7,7 @@ import com.group16.study_english_app.data.local.entity.DeckEntity
 import com.group16.study_english_app.data.local.entity.ProgressEntity
 import com.group16.study_english_app.data.local.entity.WordEntity
 import com.group16.study_english_app.data.util.CSVHelper
+import com.group16.study_english_app.data.util.SampleData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
@@ -125,111 +126,92 @@ class VocabularyRepository(
         val existingDecks = getDecksForUser(userId).first()
         if (existingDecks.isNotEmpty()) return
 
-        // IELTS Deck
-        val ieltsId = createDeck(
+        // 1. Education & Academic
+        val educationId = createDeck(
             userId = userId,
-            name = "IELTS Core Vocabulary",
-            description = "Các từ vựng học thuật cốt lõi thường gặp trong bài thi IELTS",
-            tags = "IELTS, Academic"
+            name = "🎓 Education & Academic",
+            description = "Từ vựng về giáo dục, nghiên cứu, học thuật",
+            tags = "Education, Academic, IELTS"
         )
-        addWord(
-            WordEntity(
-                deckId = ieltsId,
-                word = "Mitigate",
-                pronunciation = "/ˈmɪt.ɪ.ɡeɪt/",
-                meaning = "Làm nhẹ bớt, làm giảm bớt",
-                descriptionEn = "Make something bad less severe, serious, or painful.",
-                example = "Soil erosion was mitigated by the planting of trees.",
-                collocation = "mitigate risks, mitigate effects",
-                relatedWords = "alleviate, ease, reduce",
-                note = "Từ này rất hay dùng trong IELTS Writing Task 2"
-            )
-        )
-        addWord(
-            WordEntity(
-                deckId = ieltsId,
-                word = "Ambiguous",
-                pronunciation = "/æmˈbɪɡ.ju.əs/",
-                meaning = "Mơ hồ, nhập nhằng",
-                descriptionEn = "Open to more than one interpretation; not having one obvious meaning.",
-                example = "His ambiguous answer left us all confused.",
-                collocation = "ambiguous explanation, ambiguous language",
-                relatedWords = "vague, unclear, cryptic",
-                note = "Dùng khi nói về thông tin không rõ ràng"
-            )
-        )
-        addWord(
-            WordEntity(
-                deckId = ieltsId,
-                word = "Corroborate",
-                pronunciation = "/kəˈrɒb.ə.reɪt/",
-                meaning = "Xác minh, chứng thực",
-                descriptionEn = "Confirm or give support to (a statement, theory, or finding).",
-                example = "The witness corroborated the accused's statement.",
-                collocation = "corroborate evidence, corroborate stories",
-                relatedWords = "confirm, verify, validate",
-                note = "Từ academic cấp độ cao C1/C2"
-            )
-        )
-        addWord(
-            WordEntity(
-                deckId = ieltsId,
-                word = "Pragmatic",
-                pronunciation = "/præɡˈmæt.ɪk/",
-                meaning = "Thực tế, thực dụng",
-                descriptionEn = "Dealing with things sensibly and realistically based on practical considerations.",
-                example = "We need a pragmatic approach to solve this issue.",
-                collocation = "pragmatic approach, pragmatic decision",
-                relatedWords = "practical, realistic, down-to-earth",
-                note = "Ngược nghĩa với idealistic"
-            )
-        )
+        for (word in SampleData.getEducationWords(educationId)) {
+            addWord(word)
+        }
 
-        // TOEIC Deck
-        val toeicId = createDeck(
+        // 2. Business & Finance
+        val businessId = createDeck(
             userId = userId,
-            name = "TOEIC Common Vocab",
-            description = "Từ vựng công sở và giao dịch thương mại thông dụng",
-            tags = "TOEIC, Business"
+            name = "💼 Business & Finance",
+            description = "Từ vựng kinh doanh, tài chính, thương mại",
+            tags = "Business, Finance, TOEIC"
         )
-        addWord(
-            WordEntity(
-                deckId = toeicId,
-                word = "Negotiate",
-                pronunciation = "/nəˈɡəʊ.ʃi.eɪt/",
-                meaning = "Đàm phán, thương lượng",
-                descriptionEn = "Obtain or bring about by discussion.",
-                example = "We managed to negotiate a lower price.",
-                collocation = "negotiate a contract, negotiate a deal",
-                relatedWords = "compromise, bargain, discuss",
-                note = "Chủ đề Business cực kỳ quan trọng"
-            )
+        for (word in SampleData.getBusinessWords(businessId)) {
+            addWord(word)
+        }
+
+        // 3. Environment & Nature
+        val environmentId = createDeck(
+            userId = userId,
+            name = "🌍 Environment & Nature",
+            description = "Từ vựng môi trường, thiên nhiên, khí hậu",
+            tags = "Environment, Nature, IELTS"
         )
-        addWord(
-            WordEntity(
-                deckId = toeicId,
-                word = "Implement",
-                pronunciation = "/ˈmɪt.ɪ.ɡeɪt/", // typo fix: /ˈɪm.plɪ.ment/
-                meaning = "Thi hành, triển khai",
-                descriptionEn = "Put (a decision, plan, agreement, etc.) into effect.",
-                example = "The changes will be implemented next month.",
-                collocation = "implement changes, implement policies",
-                relatedWords = "execute, enforce, apply",
-                note = "Động từ thông dụng trong công việc"
-            )
+        for (word in SampleData.getEnvironmentWords(environmentId)) {
+            addWord(word)
+        }
+
+        // 4. Health & Lifestyle
+        val healthId = createDeck(
+            userId = userId,
+            name = "🏥 Health & Lifestyle",
+            description = "Từ vựng sức khỏe, đời sống, y tế",
+            tags = "Health, Lifestyle"
         )
-        addWord(
-            WordEntity(
-                deckId = toeicId,
-                word = "Collaborate",
-                pronunciation = "/kəˈlæb.ə.reɪt/",
-                meaning = "Hợp tác",
-                descriptionEn = "Work jointly on an activity or project.",
-                example = "Teams from both departments collaborated on the report.",
-                collocation = "collaborate with partners, collaborate on project",
-                relatedWords = "cooperate, unite, work together",
-                note = "Dùng nhiều trong công việc nhóm"
-            )
+        for (word in SampleData.getHealthWords(healthId)) {
+            addWord(word)
+        }
+
+        // 5. Technology & Innovation
+        val technologyId = createDeck(
+            userId = userId,
+            name = "💻 Technology & Innovation",
+            description = "Từ vựng công nghệ, đổi mới, kỹ thuật số",
+            tags = "Technology, Innovation"
         )
+        for (word in SampleData.getTechnologyWords(technologyId)) {
+            addWord(word)
+        }
+
+        // 6. Travel & Communication
+        val travelId = createDeck(
+            userId = userId,
+            name = "✈️ Travel & Communication",
+            description = "Từ vựng du lịch, giao tiếp, di chuyển",
+            tags = "Travel, Communication"
+        )
+        for (word in SampleData.getTravelWords(travelId)) {
+            addWord(word)
+        }
+
+        // 7. Work & Office
+        val workId = createDeck(
+            userId = userId,
+            name = "🏢 Work & Office",
+            description = "Từ vựng công sở, tuyển dụng, quản lý",
+            tags = "Work, Office, TOEIC"
+        )
+        for (word in SampleData.getWorkWords(workId)) {
+            addWord(word)
+        }
+
+        // 8. Society & Government
+        val societyId = createDeck(
+            userId = userId,
+            name = "⚖️ Society & Government",
+            description = "Từ vựng xã hội, chính trị, pháp luật",
+            tags = "Society, Government, IELTS"
+        )
+        for (word in SampleData.getSocietyWords(societyId)) {
+            addWord(word)
+        }
     }
 }

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Study_English_App</string>
+    <!-- Thêm OAuth Web Client ID từ Google Cloud Console ở đây -->
+    <string name="google_web_client_id">805960770025-ri9g5kh3ob092kkg6qq0tb03jqufftpl.apps.googleusercontent.com</string>
 </resources>
