@@ -5,8 +5,13 @@ import com.group16.study_english_app.data.local.entity.WordEntity
 object CSVHelper {
 
     fun parseCSV(content: String, deckId: Long): List<WordEntity> {
+        val cleanContent = if (content.startsWith("\uFEFF")) content.substring(1) else content
         val result = mutableListOf<WordEntity>()
-        val lines = content.lines()
+        // Kiểm tra chữ ký file Zip/Office Open XML (PK...) hoặc chứa ký tự null byte để chặn file Excel nhị phân
+        if (cleanContent.startsWith("PK\u0003\u0004") || cleanContent.startsWith("PK") || cleanContent.contains("\u0000")) {
+            throw IllegalArgumentException("Định dạng file không hợp lệ! Bạn đang chọn một file Excel (.xlsx / .xls) hoặc file nén. Vui lòng mở Excel và lưu tệp dưới định dạng CSV (chọn File -> Save As -> CSV UTF-8) trước khi nhập vào ứng dụng.")
+        }
+        val lines = cleanContent.lines()
         if (lines.isEmpty()) return result
 
         var isFirstLine = true
