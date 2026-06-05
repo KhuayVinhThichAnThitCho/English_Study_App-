@@ -551,7 +551,13 @@ class DashboardViewModel(
 
     private fun loadWeeklyActivityLogs(userId: Long) {
         viewModelScope.launch {
-            learningRepository.getRecentActivityLogs(userId, 7).collect { logs ->
+            // Tính ngày cách đây 6 ngày (để lấy đủ 7 ngày bao gồm hôm nay)
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.DATE, -6)
+            val sinceDate = sdf.format(cal.time)
+
+            learningRepository.getActivityLogsSinceDate(userId, sinceDate).collect { logs ->
                 _weeklyActivityLogs.value = fillMissingDays(logs, userId)
             }
         }
@@ -562,18 +568,20 @@ class DashboardViewModel(
         val cal = Calendar.getInstance()
         val result = mutableListOf<ActivityLogEntity>()
 
-        // Generate 7 days back
+        // Tạo map tổng hợp count theo ngày (cộng dồn LEARNED + REVIEWED)
+        val countByDate = mutableMapOf<String, Int>()
+        for (log in logs) {
+            countByDate[log.dateString] = (countByDate[log.dateString] ?: 0) + log.count
+        }
+
+        // Luôn sinh ra 7 ngày liên tiếp tính từ hôm nay trở về trước
         for (i in 0..6) {
             val dateStr = sdf.format(cal.time)
-            val matchingLog = logs.find { it.dateString == dateStr }
-            if (matchingLog != null) {
-                result.add(matchingLog)
-            } else {
-                result.add(ActivityLogEntity(userId = userId, dateString = dateStr, actionType = "LEARNED", count = 0))
-            }
+            val totalCount = countByDate[dateStr] ?: 0
+            result.add(ActivityLogEntity(userId = userId, dateString = dateStr, actionType = "LEARNED", count = totalCount))
             cal.add(Calendar.DATE, -1)
         }
-        return result.reversed() // Oldest first (for chart rendering)
+        return result.reversed()
     }
 }
 

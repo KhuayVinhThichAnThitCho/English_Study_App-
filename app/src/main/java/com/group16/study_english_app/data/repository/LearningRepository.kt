@@ -35,6 +35,10 @@ class LearningRepository(
         return logDao.getRecentLogs(userId, limit)
     }
 
+    fun getActivityLogsSinceDate(userId: Long, sinceDate: String): Flow<List<ActivityLogEntity>> {
+        return logDao.getLogsSinceDate(userId, sinceDate)
+    }
+
     fun getQuizHistory(userId: Long): Flow<List<QuizHistoryEntity>> {
         return quizHistoryDao.getQuizHistory(userId)
     }

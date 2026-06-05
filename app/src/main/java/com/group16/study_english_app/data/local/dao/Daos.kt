@@ -120,6 +120,9 @@ interface LogDao {
 
     @Query("SELECT * FROM activity_logs WHERE userId = :userId ORDER BY dateString DESC LIMIT :limit")
     fun getRecentLogs(userId: Long, limit: Int): Flow<List<ActivityLogEntity>>
+
+    @Query("SELECT * FROM activity_logs WHERE userId = :userId AND dateString >= :sinceDate ORDER BY dateString ASC")
+    fun getLogsSinceDate(userId: Long, sinceDate: String): Flow<List<ActivityLogEntity>>
 }
 
 @Dao
