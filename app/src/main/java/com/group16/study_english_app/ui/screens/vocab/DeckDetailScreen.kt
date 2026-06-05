@@ -120,12 +120,50 @@ fun DeckDetailScreen(
     ) { uri: Uri? ->
         if (uri != null) {
             try {
+                var fileName = ""
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex != -1 && cursor.moveToFirst()) {
+                        fileName = cursor.getString(nameIndex)
+                    }
+                }
+                if (fileName.isBlank()) {
+                    fileName = uri.path ?: ""
+                }
+                if (fileName.endsWith(".xlsx", ignoreCase = true) || fileName.endsWith(".xls", ignoreCase = true)) {
+                    Toast.makeText(context, "Lỗi: Không hỗ trợ trực tiếp file Excel (.xlsx/.xls). Vui lòng lưu file dưới dạng CSV!", Toast.LENGTH_LONG).show()
+                    return@rememberLauncherForActivityResult
+                }
+
                 val inputStream = context.contentResolver.openInputStream(uri)
-                val reader = BufferedReader(InputStreamReader(inputStream))
+                val reader = BufferedReader(InputStreamReader(inputStream, Charsets.UTF_8))
                 val csvContent = reader.use { it.readText() }
                 viewModel.importCSV(csvContent, deckId)
             } catch (e: Exception) {
                 Toast.makeText(context, "Không thể đọc file CSV: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val fileSaverLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/comma-separated-values")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val exportState = viewModel.csvExportResult.value
+                val csvContent = (exportState as? ResultState.Success<String>)?.data ?: ""
+                if (csvContent.isNotBlank()) {
+                    val outputStream = context.contentResolver.openOutputStream(uri)
+                    // Thêm BOM (\uFEFF) giúp Excel trên Windows nhận diện đúng mã UTF-8 của tiếng Việt có dấu
+                    val bom = "\uFEFF"
+                    outputStream?.use {
+                        it.write(bom.toByteArray(Charsets.UTF_8))
+                        it.write(csvContent.toByteArray(Charsets.UTF_8))
+                    }
+                    Toast.makeText(context, "Xuất file Excel thành công!", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Lỗi khi lưu file: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -242,46 +280,21 @@ fun DeckDetailScreen(
 
         // CSV Import Dialog
         if (showImportDialog) {
-            var csvInput by remember { mutableStateOf("") }
             AlertDialog(
                 onDismissRequest = { showImportDialog = false },
                 title = { Text("Import Từ Vựng", fontWeight = FontWeight.Bold) },
                 text = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            text = "Bạn có thể chọn file CSV từ máy hoặc dán nội dung CSV trực tiếp dưới đây.",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Button(
-                            onClick = { filePickerLauncher.launch("text/*") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text("Chọn file CSV từ máy")
-                        }
-                        
-                        Divider(modifier = Modifier.padding(vertical = 4.dp))
-                        
-                        OutlinedTextField(
-                            value = csvInput,
-                            onValueChange = { csvInput = it },
-                            placeholder = { Text("Word,Pronunciation,Meaning,Description,Example,Collocation\nhello,/həˈləʊ/,xin chào,greeting sentence,Hello world,say hello") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    }
+                    Text(
+                        text = "Vui lòng chọn file CSV chứa từ vựng từ thiết bị của bạn để tiến hành nhập dữ liệu.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 },
                 confirmButton = {
                     Button(
-                        onClick = { viewModel.importCSV(csvInput, deckId) },
-                        enabled = csvInput.isNotBlank(),
+                        onClick = { filePickerLauncher.launch("text/*") },
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Import văn bản")
+                        Text("Chọn file CSV từ máy")
                     }
                 },
                 dismissButton = {
@@ -294,45 +307,36 @@ fun DeckDetailScreen(
 
         // CSV Export Dialog
         if (showExportDialog) {
-            val csvText = (csvExportResult as? ResultState.Success<String>)?.data ?: "Đang xuất CSV..."
             AlertDialog(
                 onDismissRequest = { showExportDialog = false },
                 title = { Text("Xuất Dữ Liệu Bộ Từ", fontWeight = FontWeight.Bold) },
                 text = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            text = "Bản dịch CSV dưới đây chứa thông tin chi tiết bộ từ vựng của bạn. Nhấp để sao chép vào clipboard.",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        OutlinedTextField(
-                            value = csvText,
-                            onValueChange = {},
-                            readOnly = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp),
-                            shape = RoundedCornerShape(10.dp)
-                        )
+                    val statusText = if (csvExportResult is ResultState.Success) {
+                        "Dữ liệu bộ từ vựng đã sẵn sàng để xuất."
+                    } else if (csvExportResult is ResultState.Error) {
+                        "Lỗi khi chuẩn bị dữ liệu xuất."
+                    } else {
+                        "Đang chuẩn bị dữ liệu..."
                     }
+                    Text(
+                        text = "$statusText\n\nXuất dữ liệu từ vựng ra file CSV tương thích với Microsoft Excel (hỗ trợ đầy đủ tiếng Việt có dấu).",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 },
                 confirmButton = {
                     Button(
                         onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("Decks CSV", csvText)
-                            clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "Đã sao chép CSV vào bộ nhớ đệm!", Toast.LENGTH_SHORT).show()
+                            val defaultFileName = "MinLish_${currentDeck?.name ?: "Deck"}.csv"
+                            fileSaverLauncher.launch(defaultFileName)
                             showExportDialog = false
                         },
                         enabled = csvExportResult is ResultState.Success,
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
+                            Icon(Icons.Default.Download, contentDescription = "Save", modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Copy CSV")
+                            Text("Lưu File Excel")
                         }
                     }
                 },
