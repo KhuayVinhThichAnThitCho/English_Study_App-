@@ -178,7 +178,7 @@ fun DailyActivityBarChart(
 
 @Composable
 fun RetentionRateLineChart(
-    logs: List<ActivityLogEntity>, // We can simulate retention rate based on daily active streak and progress
+    logs: List<ActivityLogEntity>,
     modifier: Modifier = Modifier
 ) {
     val primaryColor = Color(0xFF10B981) // Emerald Green for retention
@@ -188,27 +188,36 @@ fun RetentionRateLineChart(
     // Animation progress
     val animationProgress = remember { Animatable(0f) }
     LaunchedEffect(logs) {
+        animationProgress.snapTo(0f)
         animationProgress.animateTo(
             targetValue = 1f,
             animationSpec = tween(durationMillis = 1200)
         )
     }
 
-    // Generate retention points: based on the active days we simulate retention curve (80% to 95%)
+    // Generate retention points: based on the active days we simulate retention curve
     val retentionPoints = remember(logs) {
         val points = mutableListOf<Float>()
-        var baseRetention = 85f // Starts at 85%
+        var baseRetention = 85f
         logs.forEach { log ->
             if (log.count > 0) {
-                baseRetention = (baseRetention + 3f).coerceAtMost(98f) // learning increases retention
+                baseRetention = (baseRetention + 3f).coerceAtMost(98f)
             } else {
-                baseRetention = (baseRetention - 2f).coerceAtLeast(60f) // skipping decreases retention
+                baseRetention = (baseRetention - 2f).coerceAtLeast(60f)
             }
             points.add(baseRetention)
         }
         if (points.isEmpty()) {
             listOf(80f, 82f, 85f, 83f, 88f, 90f, 92f)
         } else points
+    }
+
+    // Tính Y range động dựa trên dữ liệu thực tế
+    val yMin = remember(retentionPoints) {
+        ((retentionPoints.minOrNull() ?: 60f) - 5f).coerceAtLeast(0f)
+    }
+    val yMax = remember(retentionPoints) {
+        ((retentionPoints.maxOrNull() ?: 100f) + 5f).coerceAtMost(100f)
     }
 
     Column(
@@ -240,11 +249,13 @@ fun RetentionRateLineChart(
                 val paddingBottom = 60f
                 val chartWidth = canvasWidth - paddingLeft
                 val chartHeight = canvasHeight - paddingBottom
+                val yRange = (yMax - yMin).coerceAtLeast(1f)
 
-                // Draw Y labels (50%, 75%, 100%)
-                val YLevels = listOf(50f, 75f, 100f)
-                YLevels.forEach { percentage ->
-                    val y = chartHeight - (percentage / 100f) * chartHeight
+                // Draw Y labels - 3 mốc chia đều
+                val gridLines = 3
+                for (i in 0..gridLines) {
+                    val percentage = yMin + (yRange / gridLines) * i
+                    val y = chartHeight - ((percentage - yMin) / yRange) * chartHeight
                     
                     drawLine(
                         color = Color.LightGray.copy(alpha = 0.3f),
@@ -265,12 +276,11 @@ fun RetentionRateLineChart(
                     )
                 }
 
-                if (retentionPoints.isNotEmpty()) {
-                    val stepX = chartWidth / (retentionPoints.size - 1)
+                if (retentionPoints.size >= 2) {
+                    val stepX = chartWidth / (retentionPoints.size - 1).toFloat()
                     val points = retentionPoints.mapIndexed { index, pct ->
                         val x = paddingLeft + index * stepX
-                        // Map 0-100% to chart height
-                        val y = chartHeight - (pct / 100f) * chartHeight
+                        val y = chartHeight - ((pct - yMin) / yRange) * chartHeight
                         Offset(x, y)
                     }
 
@@ -278,78 +288,54 @@ fun RetentionRateLineChart(
                     val path = Path()
                     val backgroundPath = Path()
                     
-                    if (points.isNotEmpty()) {
-                        path.moveTo(points[0].x, points[0].y)
-                        backgroundPath.moveTo(points[0].x, chartHeight)
-                        backgroundPath.lineTo(points[0].x, points[0].y)
+                    path.moveTo(points[0].x, points[0].y)
+                    backgroundPath.moveTo(points[0].x, chartHeight)
+                    backgroundPath.lineTo(points[0].x, points[0].y)
 
-                        for (i in 1 until points.size) {
-                            val prevPoint = points[i - 1]
-                            val currentPoint = points[i]
-                            
-                            // Bezier control points
-                            val controlX1 = prevPoint.x + (currentPoint.x - prevPoint.x) / 2f
-                            val controlY1 = prevPoint.y
-                            val controlX2 = prevPoint.x + (currentPoint.x - prevPoint.x) / 2f
-                            val controlY2 = currentPoint.y
-
-                            path.cubicTo(
-                                controlX1, controlY1,
-                                controlX2, controlY2,
-                                currentPoint.x, currentPoint.y
-                            )
-                            
-                            backgroundPath.cubicTo(
-                                controlX1, controlY1,
-                                controlX2, controlY2,
-                                currentPoint.x, currentPoint.y
-                            )
-                        }
+                    for (i in 1 until points.size) {
+                        val prevPoint = points[i - 1]
+                        val currentPoint = points[i]
                         
-                        backgroundPath.lineTo(points.last().x, chartHeight)
-                        backgroundPath.close()
+                        val controlX1 = prevPoint.x + (currentPoint.x - prevPoint.x) / 2f
+                        val controlY1 = prevPoint.y
+                        val controlX2 = prevPoint.x + (currentPoint.x - prevPoint.x) / 2f
+                        val controlY2 = currentPoint.y
 
-                        // Draw background gradient (fade under the line)
-                        val animatedAlpha = animationProgress.value
-                        drawPath(
-                            path = backgroundPath,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(accentColor.copy(alpha = 0.3f * animatedAlpha), Color.Transparent)
-                            )
-                        )
-
-                        // Draw path stroke with animation
-                        // Using a clip modifier isn't native, so we can draw path with custom animation progress on X
-                        val animatedPath = Path()
-                        animatedPath.moveTo(points[0].x, points[0].y)
-                        for (i in 1 until points.size) {
-                            val prevPoint = points[i - 1]
-                            val currentPoint = points[i]
-                            
-                            val t = animationProgress.value
-                            val currentX = prevPoint.x + (currentPoint.x - prevPoint.x) * t
-                            val currentY = prevPoint.y + (currentPoint.y - prevPoint.y) * t
-                            
-                            val controlX1 = prevPoint.x + (currentX - prevPoint.x) / 2f
-                            val controlY1 = prevPoint.y
-                            val controlX2 = prevPoint.x + (currentX - prevPoint.x) / 2f
-                            val controlY2 = currentY
-                            
-                            animatedPath.cubicTo(
-                                controlX1, controlY1,
-                                controlX2, controlY2,
-                                currentX, currentY
-                            )
-                        }
-
-                        drawPath(
-                            path = path,
-                            color = primaryColor,
-                            style = Stroke(width = 6f, cap = StrokeCap.Round)
+                        path.cubicTo(
+                            controlX1, controlY1,
+                            controlX2, controlY2,
+                            currentPoint.x, currentPoint.y
                         )
                         
-                        // Draw point circles
-                        points.forEachIndexed { index, point ->
+                        backgroundPath.cubicTo(
+                            controlX1, controlY1,
+                            controlX2, controlY2,
+                            currentPoint.x, currentPoint.y
+                        )
+                    }
+                    
+                    backgroundPath.lineTo(points.last().x, chartHeight)
+                    backgroundPath.close()
+
+                    // Draw background gradient
+                    val animatedAlpha = animationProgress.value
+                    drawPath(
+                        path = backgroundPath,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(accentColor.copy(alpha = 0.3f * animatedAlpha), Color.Transparent)
+                        )
+                    )
+
+                    // Draw line stroke
+                    drawPath(
+                        path = path,
+                        color = primaryColor.copy(alpha = animatedAlpha),
+                        style = Stroke(width = 6f, cap = StrokeCap.Round)
+                    )
+                    
+                    // Draw point circles
+                    points.forEachIndexed { index, point ->
+                        if (animationProgress.value > 0.3f) {
                             drawCircle(
                                 color = primaryColor,
                                 radius = 8f,
@@ -360,25 +346,27 @@ fun RetentionRateLineChart(
                                 radius = 4f,
                                 center = point
                             )
-                            
-                            // Draw value label above point
-                            if (index == points.size - 1 && animationProgress.value > 0.9f) {
-                                drawContext.canvas.nativeCanvas.drawText(
-                                    "${retentionPoints[index].toInt()}%",
-                                    point.x,
-                                    point.y - 15f,
-                                    android.graphics.Paint().apply {
-                                        color = primaryColor.hashCode()
-                                        textSize = 28f
-                                        textAlign = android.graphics.Paint.Align.CENTER
-                                        isFakeBoldText = true
-                                    }
-                                )
-                            }
                         }
+                        
+                        // Draw value label above last point
+                        if (index == points.size - 1 && animationProgress.value > 0.9f) {
+                            drawContext.canvas.nativeCanvas.drawText(
+                                "${retentionPoints[index].toInt()}%",
+                                point.x,
+                                point.y - 15f,
+                                android.graphics.Paint().apply {
+                                    color = primaryColor.hashCode()
+                                    textSize = 28f
+                                    textAlign = android.graphics.Paint.Align.CENTER
+                                    isFakeBoldText = true
+                                }
+                            )
+                        }
+                    }
 
-                        // Draw X dates
-                        logs.forEachIndexed { index, log ->
+                    // Draw X dates
+                    logs.forEachIndexed { index, log ->
+                        if (index < points.size) {
                             val x = paddingLeft + index * stepX
                             val inputSdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                             val outputSdf = SimpleDateFormat("dd/MM", Locale.getDefault())
