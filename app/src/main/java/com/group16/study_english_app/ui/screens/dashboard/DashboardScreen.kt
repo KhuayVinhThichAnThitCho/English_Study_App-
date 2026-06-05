@@ -203,10 +203,18 @@ fun DashboardTopBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Streak Fire display
+            val context = androidx.compose.ui.platform.LocalContext.current
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0xFFFEF3C7)) // soft amber background
+                    .clickable {
+                        com.group16.study_english_app.worker.NotificationHelper.showStudyReminderNotification(
+                            context,
+                            "Đã đến giờ ôn tập!",
+                            "Bạn có 5 từ vựng đã đến hạn ôn tập. Hãy mở MinLish ôn lại ngay nhé!"
+                        )
+                    }
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
