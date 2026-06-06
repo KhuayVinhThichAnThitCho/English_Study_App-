@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.group16.study_english_app.data.local.entity.UserEntity
 import com.group16.study_english_app.ui.components.Flashcard
+import com.group16.study_english_app.ui.components.rememberTextToSpeech
 import com.group16.study_english_app.ui.viewmodel.LearningViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +62,7 @@ fun LearningScreen(
     val isLoading by learningViewModel.isLoading.collectAsState()
 
     val user = userEntity ?: return
+    val speak = rememberTextToSpeech()
 
     Scaffold(
         modifier = Modifier.statusBarsPadding(),
@@ -142,6 +144,7 @@ fun LearningScreen(
                                 word = currentWord,
                                 isFlipped = isFlipped,
                                 onFlip = { learningViewModel.flipCard() },
+                                onSpeak = speak,
                                 modifier = Modifier.weight(1f)
                             )
 

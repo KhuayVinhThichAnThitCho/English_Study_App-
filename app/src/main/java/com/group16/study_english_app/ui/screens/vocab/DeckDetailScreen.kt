@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,6 +69,7 @@ import com.group16.study_english_app.data.local.entity.UserEntity
 import com.group16.study_english_app.data.local.entity.WordEntity
 import com.group16.study_english_app.ui.viewmodel.ResultState
 import com.group16.study_english_app.ui.viewmodel.VocabularyViewModel
+import com.group16.study_english_app.ui.components.rememberTextToSpeech
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
@@ -264,6 +266,7 @@ fun DeckDetailScreen(
                     )
                 }
             } else {
+                val speak = rememberTextToSpeech()
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -271,6 +274,7 @@ fun DeckDetailScreen(
                     items(filteredWords) { word ->
                         WordItemCard(
                             word = word,
+                            onSpeak = speak,
                             onDelete = { viewModel.deleteWord(word) }
                         )
                     }
@@ -353,6 +357,7 @@ fun DeckDetailScreen(
 @Composable
 fun WordItemCard(
     word: WordEntity,
+    onSpeak: (String) -> Unit,
     onDelete: () -> Unit
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -381,7 +386,8 @@ fun WordItemCard(
                         text = word.word,
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { onSpeak(word.word) }
                     )
                     if (word.pronunciation.isNotBlank()) {
                         Spacer(modifier = Modifier.width(8.dp))
@@ -389,14 +395,17 @@ fun WordItemCard(
                             imageVector = Icons.Default.VolumeUp,
                             contentDescription = "Voice",
                             tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable { onSpeak(word.word) }
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = word.pronunciation,
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.secondary,
-                            fontStyle = FontStyle.Italic
+                            fontStyle = FontStyle.Italic,
+                            modifier = Modifier.clickable { onSpeak(word.word) }
                         )
                     }
                 }

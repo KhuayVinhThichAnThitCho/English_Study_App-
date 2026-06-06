@@ -49,6 +49,7 @@ fun Flashcard(
     word: WordEntity,
     isFlipped: Boolean,
     onFlip: () -> Unit,
+    onSpeak: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Rotation animation
@@ -79,7 +80,7 @@ fun Flashcard(
     ) {
         if (rotationY <= 90f) {
             // Front Side
-            FlashcardFront(word = word)
+            FlashcardFront(word = word, onSpeak = onSpeak)
         } else {
             // Back Side (flipped 180deg visually, so we rotate 180deg back to display text normally)
             Box(
@@ -96,7 +97,10 @@ fun Flashcard(
 }
 
 @Composable
-fun FlashcardFront(word: WordEntity) {
+fun FlashcardFront(
+    word: WordEntity,
+    onSpeak: (String) -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -122,19 +126,21 @@ fun FlashcardFront(word: WordEntity) {
                     letterSpacing = 1.sp
                 ),
                 color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.clickable { onSpeak(word.word) }
             )
             
             if (word.pronunciation.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onSpeak(word.word) }
                 ) {
                     Icon(
                         imageVector = Icons.Default.VolumeUp,
                         contentDescription = "Pronunciation",
                         tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.height(16.dp).width(16.dp)
+                        modifier = Modifier.height(20.dp).width(20.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
